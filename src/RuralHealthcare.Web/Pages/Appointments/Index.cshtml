@@ -99,6 +99,19 @@
     </div>
 }
 
+<div class="flex items-center justify-between mt-4">
+    <div class="text-sm text-gray-600">Showing @Model.Appointments.Count of @Model.TotalCount</div>
+    <div class="flex gap-2">
+        @{
+            var prevPage = Model.Page > 1 ? Model.Page - 1 : 1;
+            var nextPage = (Model.Page * Model.PageSize) < Model.TotalCount ? Model.Page + 1 : Model.Page;
+            var baseUrl = "/appointments" + (string.IsNullOrEmpty(Model.Filter) ? "" : ("?filter=" + Model.Filter));
+            var sep = string.IsNullOrEmpty(Model.Filter) ? "?" : "&";
+        }
+        <a class="btn bg-gray-200 hover:bg-gray-300" href="@($"{baseUrl}{sep}page={prevPage}&pageSize={Model.PageSize}")">Prev</a>
+        <a class="btn bg-gray-200 hover:bg-gray-300" href="@($"{baseUrl}{sep}page={nextPage}&pageSize={Model.PageSize}")">Next</a>
+    </div>
+</div>
 @functions {
     string GetStatusBorderClass(string status) => status switch
     {

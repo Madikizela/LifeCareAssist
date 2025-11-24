@@ -19,9 +19,13 @@ public class CreateEmergencyModel : PageModel
     public EmergencyInput Input { get; set; } = new();
     
     public List<Patient> Patients { get; set; } = new();
+    public Clinic? NearestAmbulanceClinic { get; set; }
+    public string? NearestAmbulanceDistanceLabel { get; set; }
+    public List<Clinic> AmbulanceClinics { get; set; } = new();
 
     public async Task OnGetAsync(Guid? patientId)
     {
+        AmbulanceClinics = await _context.Clinics.Where(c => c.IsActive && c.HasAmbulance).ToListAsync();
         Patients = await _context.Patients
             .OrderBy(p => p.LastName)
             .ToListAsync();
@@ -30,6 +34,36 @@ public class CreateEmergencyModel : PageModel
         {
             Input.PatientId = patientId.Value;
             Input.IsRegisteredPatient = true;
+            var patient = await _context.Patients.FindAsync(patientId.Value);
+            if (patient != null && patient.Latitude.HasValue && patient.Longitude.HasValue)
+            {
+                if (AmbulanceClinics.Any())
+                {
+                    var best = AmbulanceClinics
+                        .Select(c => new { C = c, D = Haversine(patient.Latitude.Value, patient.Longitude.Value, c.Latitude, c.Longitude) })
+                        .OrderBy(x => x.D)
+                        .First();
+                    NearestAmbulanceClinic = best.C;
+                    NearestAmbulanceDistanceLabel = Math.Round(best.D, 1) + " km";
+                }
+            }
+        }
+        else
+        {
+            var qlatStr = Request.Query["lat"].FirstOrDefault();
+            var qlngStr = Request.Query["lng"].FirstOrDefault();
+            if (double.TryParse(qlatStr, out var qlat) && double.TryParse(qlngStr, out var qlng))
+            {
+                if (AmbulanceClinics.Any())
+                {
+                    var best = AmbulanceClinics
+                        .Select(c => new { C = c, D = Haversine(qlat, qlng, c.Latitude, c.Longitude) })
+                        .OrderBy(x => x.D)
+                        .First();
+                    NearestAmbulanceClinic = best.C;
+                    NearestAmbulanceDistanceLabel = Math.Round(best.D, 1) + " km";
+                }
+            }
         }
     }
 
@@ -94,6 +128,16 @@ public class CreateEmergencyModel : PageModel
 
         TempData["SuccessMessage"] = "Emergency call created successfully! Ambulance is being dispatched.";
         return RedirectToPage("/Emergency/Index");
+    }
+
+    private static double Haversine(double lat1, double lon1, double lat2, double lon2)
+    {
+        double R = 6371;
+        double dLat = (lat2 - lat1) * Math.PI / 180;
+        double dLon = (lon2 - lon1) * Math.PI / 180;
+        double a = Math.Sin(dLat / 2) * Math.Sin(dLat / 2) + Math.Cos(lat1 * Math.PI / 180) * Math.Cos(lat2 * Math.PI / 180) * Math.Sin(dLon / 2) * Math.Sin(dLon / 2);
+        double c = 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
+        return R * c;
     }
 }
 

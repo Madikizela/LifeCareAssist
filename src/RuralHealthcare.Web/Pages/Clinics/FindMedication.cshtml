@@ -7,7 +7,7 @@
 <h1 class="text-3xl font-bold mb-6">Find Medication</h1>
 
 <div class="card mb-6">
-    <form method="get" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+    <form id="finderForm" method="get" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
         <div class="md:col-span-2">
             <label class="block text-sm font-medium mb-1">Medication name</label>
             <input type="text" name="Query" value="@Model.Query" placeholder="e.g. PrEP, ART, Amlodipine" class="input w-full" />
@@ -28,11 +28,11 @@
         </div>
         <div>
             <label class="block text-sm font-medium mb-1">Your latitude</label>
-            <input type="text" name="Latitude" value="@Model.Latitude" class="input w-full" />
+            <input id="lat-input" type="text" name="Latitude" value="@Model.Latitude" class="input w-full" />
         </div>
         <div>
             <label class="block text-sm font-medium mb-1">Your longitude</label>
-            <input type="text" name="Longitude" value="@Model.Longitude" class="input w-full" />
+            <input id="lng-input" type="text" name="Longitude" value="@Model.Longitude" class="input w-full" />
         </div>
         <div>
             <label class="block text-sm font-medium mb-1">Radius (km)</label>
@@ -49,6 +49,7 @@
                 <input type="checkbox" name="InStockOnly" value="true" @(Model.InStockOnly ? "checked" : "") class="mr-2" />
                 <span>In stock only</span>
             </label>
+            <button type="button" class="btn bg-blue-100 text-blue-800 hover:bg-blue-200" onclick="useMyLocation()">Use my location</button>
             <button type="submit" class="btn btn-primary">Search</button>
         </div>
     </form>
@@ -74,8 +75,95 @@
                         <span class="text-sm">@string.Join(", ", c.MatchedMedications)</span>
                     </div>
                 </div>
-                <a href="/admin/clinics" class="btn btn-secondary">Details</a>
+                <a href="/admin/clinics/details/@c.Clinic.Id" class="btn btn-secondary">Details</a>
             </div>
         </div>
     }
 </div>
+
+<div id="externalFacilities" class="mt-6"></div>
+
+<script>
+    function useMyLocation() {
+        if (!navigator.geolocation) {
+            alert('Geolocation is not supported by your browser');
+            return;
+        }
+        navigator.geolocation.getCurrentPosition(function (pos) {
+            var lat = pos.coords.latitude.toFixed(6);
+            var lng = pos.coords.longitude.toFixed(6);
+            document.getElementById('lat-input').value = lat;
+            document.getElementById('lng-input').value = lng;
+            var radiusSel = document.querySelector('select[name="RadiusKm"]');
+            if (radiusSel && !radiusSel.value) { radiusSel.value = '10'; }
+            document.getElementById('finderForm').submit();
+        }, function (err) {
+            alert('Unable to retrieve your location');
+        }, { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 });
+    }
+
+    function haversine(lat1, lon1, lat2, lon2) {
+        var R = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLon = (lon2 - lon1) * Math.PI / 180;
+        var a = Math.sin(dLat/2)*Math.sin(dLat/2) + Math.cos(lat1*Math.PI/180)*Math.cos(lat2*Math.PI/180)*Math.sin(dLon/2)*Math.sin(dLon/2);
+        var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+
+    function classifyFacility(tags) {
+        if (!tags) return 'Unknown';
+        var opType = (tags["operator:type"] || '').toLowerCase();
+        var ownership = (tags["ownership"] || '').toLowerCase();
+        var hcPriv = (tags["healthcare:private"] || '').toLowerCase();
+        var operatorName = (tags["operator"] || '').toLowerCase();
+        if (opType === 'government' || opType === 'public' || ownership === 'public') return 'Public';
+        if (opType === 'private' || ownership === 'private' || hcPriv === 'yes') return 'Private';
+        var privateOps = ['mediclinic','netcare','life healthcare','busamed','intercare','lenmed'];
+        for (var i=0;i<privateOps.length;i++){ if (operatorName.includes(privateOps[i])) return 'Private'; }
+        var publicOps = ['department of health','health department','provincial department','district health'];
+        for (var j=0;j<publicOps.length;j++){ if (operatorName.includes(publicOps[j])) return 'Public'; }
+        return 'Unknown';
+    }
+    async function fetchExternalFacilities(lat, lng) {
+        var panel = document.getElementById('externalFacilities');
+        if (!panel) return;
+        panel.innerHTML = '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><div class="text-sm text-gray-700">Finding nearby public facilities…</div></div>';
+        var query = `[out:json];(node(around:7000,${lat},${lng})["amenity"~"hospital|clinic"];way(around:7000,${lat},${lng})["amenity"~"hospital|clinic"];);out center 10;`;
+        async function callOverpass(url){
+            var res = await fetch(url, { method: 'POST', body: query, headers: { 'Content-Type': 'text/plain' } });
+            if (!res.ok) throw new Error('Overpass error');
+            return res.json();
+        }
+        try {
+            var data;
+            try { data = await callOverpass('https://overpass-api.de/api/interpreter'); }
+            catch { data = await callOverpass('https://overpass.kumi.systems/api/interpreter'); }
+            var elements = (data.elements || []).map(function(e){
+                var name = e.tags && (e.tags.name || e.tags["name:en"] || e.tags.amenity) || 'Unknown facility';
+                var pLat = e.lat || (e.center && e.center.lat);
+                var pLng = e.lon || (e.center && e.center.lon);
+                var dist = (pLat && pLng) ? haversine(parseFloat(lat), parseFloat(lng), pLat, pLng) : 9999;
+                var kind = classifyFacility(e.tags);
+                return { name: name, lat: pLat, lng: pLng, dist: dist, kind: kind };
+            }).filter(function(x){ return x.lat && x.lng; }).sort(function(a,b){ return a.dist - b.dist; }).slice(0,5);
+            if (!elements.length) { panel.innerHTML = '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><div class="text-sm text-gray-700">No nearby public facilities found within 7 km.</div></div>'; return; }
+            var items = elements.map(function(x){
+                var mapsQ = `https://www.google.com/maps?q=${x.lat},${x.lng}`;
+                var mapsDir = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}`;
+                return `<li class="py-2 flex items-center justify-between"><div><div class="font-semibold">${x.name}</div><div class="text-sm text-gray-600">${x.dist.toFixed(1)} km away • ${x.kind}</div></div><div class="flex gap-2"><a href="${mapsQ}" target="_blank" class="btn btn-secondary text-xs">🗺️ Map</a><a href="${mapsDir}" target="_blank" class="btn bg-blue-600 text-white hover:bg-blue-700 text-xs">🧭 Directions</a></div></li>`;
+            }).join('');
+            panel.innerHTML = `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><div class="font-semibold mb-2">Nearby Public Facilities</div><ul class="divide-y">${items}</ul><div class="text-xs text-gray-600 mt-3">Source: OpenStreetMap. Data may be incomplete. <a class="underline" href="mailto:support@ruralhealthcare.org.za?subject=Facility%20Correction">Report a correction</a></div></div>`;
+        } catch (e) {
+            panel.innerHTML = '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><div class="text-sm text-gray-700">Unable to load public facilities at the moment. Please try again.</div></div>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function(){
+        var initialLat = @(Model.Latitude.HasValue ? Model.Latitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null");
+        var initialLng = @(Model.Longitude.HasValue ? Model.Longitude.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) : "null");
+        if (initialLat !== null && initialLng !== null) {
+            fetchExternalFacilities(initialLat, initialLng);
+        }
+    });
+</script>

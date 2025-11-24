@@ -113,6 +113,24 @@
             <p id="locationStatus" class="text-sm text-gray-600 mt-2"></p>
         </div>
 
+        @if (Model.NearestAmbulanceClinic != null)
+        {
+            var c = Model.NearestAmbulanceClinic;
+            var lat = c.Latitude;
+            var lng = c.Longitude;
+            <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                <div class="font-semibold mb-1">Nearest Ambulance Facility</div>
+                <div class="text-sm text-gray-700">@c.Name — @Model.NearestAmbulanceDistanceLabel</div>
+                <div class="mt-2 flex gap-2">
+                    <a href="https://www.google.com/maps?q=@lat,@lng" target="_blank" class="btn btn-secondary text-xs">🗺️ View on Map</a>
+                    <a href="https://www.google.com/maps/dir/?api=1&destination=@lat,@lng" target="_blank" class="btn bg-green-600 text-white hover:bg-green-700 text-xs">🧭 Get Directions</a>
+                </div>
+            </div>
+        }
+
+        <div id="externalFacilities" class="mt-4"></div>
+        <div id="nearestPanel" class="mt-4"></div>
+
         <div class="flex gap-4">
             <button type="submit" class="btn btn-danger flex-1">🚨 Dispatch Emergency Services</button>
             <a href="/emergency" class="btn bg-gray-200 hover:bg-gray-300">Cancel</a>
@@ -122,6 +140,68 @@
 
 @section Scripts {
 <script>
+    const ambulanceClinics = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.AmbulanceClinics.Select(c => new { name = c.Name, lat = c.Latitude, lng = c.Longitude })));
+    function haversine(lat1, lon1, lat2, lon2) {
+        const R = 6371;
+        const dLat = (lat2 - lat1) * Math.PI / 180;
+        const dLon = (lon2 - lon1) * Math.PI / 180;
+        const a = Math.sin(dLat/2)**2 + Math.cos(lat1 * Math.PI/180) * Math.cos(lat2 * Math.PI/180) * Math.sin(dLon/2)**2;
+        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+        return R * c;
+    }
+    function classifyFacility(tags) {
+        if (!tags) return 'Unknown';
+        const opType = (tags["operator:type"] || '').toLowerCase();
+        const ownership = (tags["ownership"] || '').toLowerCase();
+        const hcPriv = (tags["healthcare:private"] || '').toLowerCase();
+        const operator = (tags["operator"] || '').toLowerCase();
+        if (opType === 'government' || opType === 'public' || ownership === 'public') return 'Public';
+        if (opType === 'private' || ownership === 'private' || hcPriv === 'yes') return 'Private';
+        const privateOps = ['mediclinic','netcare','life healthcare','busamed','intercare','lenmed'];
+        if (privateOps.some(p => operator.includes(p))) return 'Private';
+        const publicOps = ['department of health','health department','provincial department','district health'];
+        if (publicOps.some(p => operator.includes(p))) return 'Public';
+        return 'Unknown';
+    }
+    async function fetchExternalFacilities(lat, lng) {
+        const panel = document.getElementById('externalFacilities');
+        if (!panel) return;
+        panel.innerHTML = '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><div class="text-sm text-gray-700">Finding nearby public facilities…</div></div>';
+        const query = `[out:json];(node(around:7000,${lat},${lng})["amenity"~"hospital|clinic"];way(around:7000,${lat},${lng})["amenity"~"hospital|clinic"];);out center 10;`;
+        async function callOverpass(url) {
+            const res = await fetch(url, { method: 'POST', body: query, headers: { 'Content-Type': 'text/plain' } });
+            if (!res.ok) throw new Error('Overpass error');
+            return res.json();
+        }
+        try {
+            let data;
+            try {
+                data = await callOverpass('https://overpass-api.de/api/interpreter');
+            } catch {
+                data = await callOverpass('https://overpass.kumi.systems/api/interpreter');
+            }
+            const elements = (data.elements || []).map(e => {
+                const name = e.tags && (e.tags.name || e.tags["name:en"] || e.tags.amenity) || 'Unknown facility';
+                const pLat = e.lat || (e.center && e.center.lat);
+                const pLng = e.lon || (e.center && e.center.lon);
+                const dist = (pLat && pLng) ? haversine(lat, lng, pLat, pLng) : 9999;
+                const kind = classifyFacility(e.tags);
+                return { name, lat: pLat, lng: pLng, dist, kind };
+            }).filter(x => x.lat && x.lng).sort((a,b) => a.dist - b.dist).slice(0,5);
+            if (!elements.length) {
+                panel.innerHTML = '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><div class="text-sm text-gray-700">No nearby public facilities found within 7 km.</div></div>';
+                return;
+            }
+            const items = elements.map(x => {
+                const mapsQ = `https://www.google.com/maps?q=${x.lat},${x.lng}`;
+                const mapsDir = `https://www.google.com/maps/dir/?api=1&destination=${x.lat},${x.lng}`;
+                return `<li class="py-2 flex items-center justify-between"><div><div class="font-semibold">${x.name}</div><div class="text-sm text-gray-600">${x.dist.toFixed(1)} km away • ${x.kind}</div></div><div class="flex gap-2"><a href="${mapsQ}" target="_blank" class="btn btn-secondary text-xs">🗺️ Map</a><a href="${mapsDir}" target="_blank" class="btn bg-blue-600 text-white hover:bg-blue-700 text-xs">🧭 Directions</a></div></li>`;
+            }).join('');
+            panel.innerHTML = `<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><div class="font-semibold mb-2">Nearby Public Facilities</div><ul class="divide-y">${items}</ul><div class="text-xs text-gray-600 mt-3">Source: OpenStreetMap. Data may be incomplete. <a class="underline" href="mailto:support@ruralhealthcare.org.za?subject=Facility%20Correction">Report a correction</a></div></div>`;
+        } catch (_) {
+            panel.innerHTML = '<div class="bg-blue-50 border-l-4 border-blue-500 p-4 rounded"><div class="text-sm text-gray-700">Unable to load public facilities at the moment. Please try again.</div></div>';
+        }
+    }
     function toggleCallerType(isRegistered) {
         const registeredSection = document.getElementById('registeredSection');
         const anonymousSection = document.getElementById('anonymousSection');
@@ -152,11 +232,37 @@
             status.textContent = 'Getting location...';
             navigator.geolocation.getCurrentPosition(
                 (position) => {
-                    // Use toString() to ensure proper decimal format
-                    document.getElementById('latitude').value = position.coords.latitude.toString();
-                    document.getElementById('longitude').value = position.coords.longitude.toString();
-                    status.textContent = `✓ Location captured: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+                    const lat = position.coords.latitude;
+                    const lng = position.coords.longitude;
+                    document.getElementById('latitude').value = lat.toString();
+                    document.getElementById('longitude').value = lng.toString();
+                    status.textContent = `✓ Location captured: ${lat.toFixed(6)}, ${lng.toFixed(6)}`;
                     status.classList.add('text-green-600');
+                    if (ambulanceClinics && ambulanceClinics.length) {
+                        let best = null;
+                        for (const c of ambulanceClinics) {
+                            const d = haversine(lat, lng, c.lat, c.lng);
+                            if (!best || d < best.d) best = { c, d };
+                        }
+                        if (best) {
+                            const panel = document.getElementById('nearestPanel');
+                            if (panel) {
+                                const dLabel = `${best.d.toFixed(1)} km`;
+                                const mapsQ = `https://www.google.com/maps?q=${best.c.lat},${best.c.lng}`;
+                                const mapsDir = `https://www.google.com/maps/dir/?api=1&destination=${best.c.lat},${best.c.lng}`;
+                                panel.innerHTML = `
+                                    <div class="bg-green-50 border-l-4 border-green-500 p-4 rounded">
+                                        <div class="font-semibold mb-1">Nearest Ambulance Facility</div>
+                                        <div class="text-sm text-gray-700">${best.c.name} — ${dLabel}</div>
+                                        <div class="mt-2 flex gap-2">
+                                            <a href="${mapsQ}" target="_blank" class="btn btn-secondary text-xs">🗺️ View on Map</a>
+                                            <a href="${mapsDir}" target="_blank" class="btn bg-green-600 text-white hover:bg-green-700 text-xs">🧭 Get Directions</a>
+                                        </div>
+                                    </div>`;
+                            }
+                        }
+                    }
+                    fetchExternalFacilities(lat, lng);
                 },
                 (error) => {
                     status.textContent = '✗ Could not get location. Please provide location description.';
@@ -173,6 +279,18 @@
     document.addEventListener('DOMContentLoaded', function() {
         const isRegistered = document.querySelector('input[name="Input.IsRegisteredPatient"]:checked').value === 'true';
         toggleCallerType(isRegistered);
+        const params = new URLSearchParams(window.location.search);
+        const qlat = params.get('lat');
+        const qlng = params.get('lng');
+        if (qlat && qlng) {
+            document.getElementById('latitude').value = qlat;
+            document.getElementById('longitude').value = qlng;
+            const latNum = parseFloat(qlat);
+            const lngNum = parseFloat(qlng);
+            if (!Number.isNaN(latNum) && !Number.isNaN(lngNum)) {
+                fetchExternalFacilities(latNum, lngNum);
+            }
+        }
     });
 </script>
 }

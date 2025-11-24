@@ -19,6 +19,11 @@ public class PatientsIndexModel : PageModel
     public string? SearchTerm { get; set; }
     [BindProperty(SupportsGet = true)]
     public Guid? ClinicId { get; set; }
+    [BindProperty(SupportsGet = true)]
+    public int Page { get; set; } = 1;
+    [BindProperty(SupportsGet = true)]
+    public int PageSize { get; set; } = 10;
+    public int TotalCount { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string? search)
     {
@@ -63,8 +68,12 @@ public class PatientsIndexModel : PageModel
                 p.PhoneNumber.Contains(search));
         }
 
+        TotalCount = await query.CountAsync();
+        var skip = (Math.Max(1, Page) - 1) * Math.Max(1, PageSize);
         Patients = await query
             .OrderBy(p => p.LastName)
+            .Skip(skip)
+            .Take(PageSize)
             .AsNoTracking()
             .ToListAsync();
 

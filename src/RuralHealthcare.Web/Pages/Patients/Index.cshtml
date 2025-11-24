@@ -64,3 +64,15 @@
         </table>
     </div>
 </div>
+
+<div class="flex items-center justify-between mt-4">
+    <div class="text-sm text-gray-600">Showing @Model.Patients.Count of @Model.TotalCount</div>
+    <div class="flex gap-2">
+        @{
+            var prevPage = Model.Page > 1 ? Model.Page - 1 : 1;
+            var nextPage = (Model.Page * Model.PageSize) < Model.TotalCount ? Model.Page + 1 : Model.Page;
+        }
+        <a class="btn bg-gray-200 hover:bg-gray-300" href="/patients?search=@Model.SearchTerm&page=@prevPage&pageSize=@Model.PageSize">Prev</a>
+        <a class="btn bg-gray-200 hover:bg-gray-300" href="/patients?search=@Model.SearchTerm&page=@nextPage&pageSize=@Model.PageSize">Next</a>
+    </div>
+</div>

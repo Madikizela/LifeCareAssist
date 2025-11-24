@@ -17,6 +17,11 @@ public class AppointmentsIndexModel : PageModel
 
     public List<Appointment> Appointments { get; set; } = new();
     public string? Filter { get; set; }
+    [BindProperty(SupportsGet = true)]
+    public int Page { get; set; } = 1;
+    [BindProperty(SupportsGet = true)]
+    public int PageSize { get; set; } = 10;
+    public int TotalCount { get; set; }
 
     public async Task<IActionResult> OnGetAsync(string? filter)
     {
@@ -67,8 +72,12 @@ public class AppointmentsIndexModel : PageModel
             query = query.Where(a => a.Status == "completed");
         }
 
+        TotalCount = await query.CountAsync();
+        var skip = (Math.Max(1, Page) - 1) * Math.Max(1, PageSize);
         Appointments = await query
             .OrderBy(a => a.ScheduledDateTime)
+            .Skip(skip)
+            .Take(PageSize)
             .ToListAsync();
 
         return Page();
