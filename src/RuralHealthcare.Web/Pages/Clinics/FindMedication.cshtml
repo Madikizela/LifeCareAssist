@@ -1,0 +1,81 @@
+@page "/find-medication"
+@model RuralHealthcare.Web.Pages.Clinics.FindMedicationModel
+@{
+    ViewData["Title"] = "Find Medication";
+}
+
+<h1 class="text-3xl font-bold mb-6">Find Medication</h1>
+
+<div class="card mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+        <div class="md:col-span-2">
+            <label class="block text-sm font-medium mb-1">Medication name</label>
+            <input type="text" name="Query" value="@Model.Query" placeholder="e.g. PrEP, ART, Amlodipine" class="input w-full" />
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Category</label>
+            <select name="Category" class="input w-full">
+                <option value="">All Categories</option>
+                <option value="HIV / AIDS" selected="@(Model.Category == "HIV / AIDS")">HIV / AIDS</option>
+                <option value="Hypertension / Cardiovascular" selected="@(Model.Category == "Hypertension / Cardiovascular")">Hypertension / Cardiovascular</option>
+                <option value="Diabetes / Endocrine" selected="@(Model.Category == "Diabetes / Endocrine")">Diabetes / Endocrine</option>
+                <option value="Infections / Antibiotics" selected="@(Model.Category == "Infections / Antibiotics")">Infections / Antibiotics</option>
+                <option value="Respiratory" selected="@(Model.Category == "Respiratory")">Respiratory</option>
+                <option value="Mental Health" selected="@(Model.Category == "Mental Health")">Mental Health</option>
+                <option value="Pain / Analgesics" selected="@(Model.Category == "Pain / Analgesics")">Pain / Analgesics</option>
+                <option value="Family Planning" selected="@(Model.Category == "Family Planning")">Family Planning</option>
+            </select>
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Your latitude</label>
+            <input type="text" name="Latitude" value="@Model.Latitude" class="input w-full" />
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Your longitude</label>
+            <input type="text" name="Longitude" value="@Model.Longitude" class="input w-full" />
+        </div>
+        <div>
+            <label class="block text-sm font-medium mb-1">Radius (km)</label>
+            <select name="RadiusKm" class="input w-full">
+                <option value="">Any distance</option>
+                <option value="5" selected="@(Model.RadiusKm == 5)">5 km</option>
+                <option value="10" selected="@(Model.RadiusKm == 10)">10 km</option>
+                <option value="20" selected="@(Model.RadiusKm == 20)">20 km</option>
+                <option value="50" selected="@(Model.RadiusKm == 50)">50 km</option>
+            </select>
+        </div>
+        <div class="md:col-span-6 flex items-center gap-4">
+            <label class="inline-flex items-center">
+                <input type="checkbox" name="InStockOnly" value="true" @(Model.InStockOnly ? "checked" : "") class="mr-2" />
+                <span>In stock only</span>
+            </label>
+            <button type="submit" class="btn btn-primary">Search</button>
+        </div>
+    </form>
+    <div class="text-sm text-gray-600 mt-2">
+        Showing clinics with @(Model.InStockOnly ? "in-stock" : "any") matches@(string.IsNullOrEmpty(Model.Category) ? "" : $" in '{Model.Category}'")@(Model.RadiusKm.HasValue && Model.Latitude.HasValue && Model.Longitude.HasValue ? $", within {Model.RadiusKm} km" : "")
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-4">
+    @foreach (var c in Model.Results)
+    {
+        <div class="card">
+            <div class="flex justify-between items-start">
+                <div>
+                    <h3 class="text-xl font-bold">@c.Clinic.Name</h3>
+                    <p class="text-gray-600">@c.Clinic.Address</p>
+                    @if (!string.IsNullOrEmpty(c.DistanceLabel))
+                    {
+                        <p class="text-gray-600">@c.DistanceLabel</p>
+                    }
+                    <div class="mt-2">
+                        <span class="text-sm font-semibold">Available:</span>
+                        <span class="text-sm">@string.Join(", ", c.MatchedMedications)</span>
+                    </div>
+                </div>
+                <a href="/admin/clinics" class="btn btn-secondary">Details</a>
+            </div>
+        </div>
+    }
+</div>

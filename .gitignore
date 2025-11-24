@@ -1,0 +1,28 @@
+## .NET
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.log
+.vs/
+.vscode/
+
+## Database
+*.db
+*.db-shm
+*.db-wal
+
+## Node
+node_modules/
+package-lock.json
+
+## Environment
+appsettings.Development.json
+appsettings.Local.json
+.env
+*.env.local
+
+## Build
+dist/
+wwwroot/css/site.css

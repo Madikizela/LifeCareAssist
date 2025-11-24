@@ -1,0 +1,272 @@
+@page "{id:guid?}"
+@model ClinicDetailsModel
+@{
+    ViewData["Title"] = Model.Clinic.Name;
+}
+
+<div class="mb-6">
+    <a href="/admin/clinics" class="text-blue-600 hover:underline mb-4 inline-block">← Back to Clinics</a>
+    <div class="flex justify-between items-start">
+        <div>
+            <h1 class="text-3xl font-bold">@Model.Clinic.Name</h1>
+            <p class="text-gray-600">@Model.Clinic.Address</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="/admin/clinics/edit/@Model.Clinic.Id" class="btn btn-primary">Edit</a>
+            @if (Model.Clinic.IsActive)
+            {
+                <span class="px-3 py-1 bg-green-100 text-green-800 rounded">Active</span>
+            }
+            else
+            {
+                <span class="px-3 py-1 bg-gray-100 text-gray-800 rounded">Inactive</span>
+            }
+        </div>
+    </div>
+    <div class="mt-4 flex gap-2">
+        <button type="button" class="px-3 py-1 rounded bg-blue-600 text-white" onclick="showClinicTab('overview')">Overview</button>
+        <button type="button" class="px-3 py-1 rounded bg-gray-200 text-gray-800" onclick="showClinicTab('medications')">Medications</button>
+    </div>
+</div>
+
+<div id="overview-section" class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+        <div class="card">
+            <h2 class="text-xl font-bold mb-4">Clinic Information</h2>
+            <dl class="grid grid-cols-2 gap-4">
+                <div>
+                    <dt class="text-sm text-gray-600">Phone Number</dt>
+                    <dd class="font-medium">@Model.Clinic.PhoneNumber</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-600">Operating Hours</dt>
+                    <dd class="font-medium">@(Model.Clinic.OperatingHours ?? "Not specified")</dd>
+                </div>
+                <div class="col-span-2">
+                    <dt class="text-sm text-gray-600">Address</dt>
+                    <dd class="font-medium">@Model.Clinic.Address</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-600">GPS Coordinates</dt>
+                    <dd class="font-medium">@Model.Clinic.Latitude.ToString("F6"), @Model.Clinic.Longitude.ToString("F6")</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-600">Ambulance Service</dt>
+                    <dd class="font-medium">
+                        @if (Model.Clinic.HasAmbulance)
+                        {
+                            <span class="text-green-600">✓ Available</span>
+                        }
+                        else
+                        {
+                            <span class="text-gray-400">Not Available</span>
+                        }
+                    </dd>
+                </div>
+            </dl>
+        </div>
+
+        
+
+        <div class="card">
+            <h2 class="text-xl font-bold mb-4">Location Map</h2>
+            <div class="bg-gray-100 rounded-lg p-8 text-center">
+                <p class="text-gray-600 mb-4">Map integration coming soon</p>
+                <a href="https://www.google.com/maps?q=@Model.Clinic.Latitude.ToString(System.Globalization.CultureInfo.InvariantCulture),@Model.Clinic.Longitude.ToString(System.Globalization.CultureInfo.InvariantCulture)" 
+                   target="_blank" 
+                   class="btn btn-primary">
+                    View on Google Maps
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <div class="space-y-6">
+        <div class="card">
+            <h2 class="text-lg font-bold mb-3">Quick Actions</h2>
+            <div class="space-y-2">
+                <a href="/admin/clinics/edit/@Model.Clinic.Id" class="block w-full btn btn-primary text-center">
+                    ✏️ Edit Clinic
+                </a>
+                <a href="/patients?clinicId=@Model.Clinic.Id" class="block w-full btn btn-secondary text-center">
+                    👥 View Patients
+                </a>
+                <a href="/appointments?clinicId=@Model.Clinic.Id" class="block w-full btn bg-blue-100 text-blue-800 hover:bg-blue-200 text-center">
+                    📅 View Appointments
+                </a>
+            </div>
+        </div>
+
+        <div class="card">
+            <h2 class="text-lg font-bold mb-3">Statistics</h2>
+            <div class="space-y-3">
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Total Patients</span>
+                    <span class="font-bold text-2xl">@Model.TotalPatients</span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span class="text-gray-600">Appointments Today</span>
+                    <span class="font-bold text-2xl">@Model.AppointmentsToday</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="medications-section" class="hidden">
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Available Medications</h2>
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="bg-green-50 border-l-4 border-green-500 p-4 mb-4">
+                <p class="text-green-700">@TempData["SuccessMessage"]</p>
+            </div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="bg-red-50 border-l-4 border-red-500 p-4 mb-4">
+                <p class="text-red-700">@TempData["ErrorMessage"]</p>
+            </div>
+        }
+        @{ var stock = Model.Clinic.MedicationStock ?? new List<RuralHealthcare.Core.Entities.ClinicMedicationItem>(); }
+        <div class="mb-3 flex gap-2">
+            <button type="button" class="px-3 py-1 rounded bg-blue-600 text-white" onclick="showMedTab('in')">In Stock (@stock.Where(s => s.InStock).Count())</button>
+            <button type="button" class="px-3 py-1 rounded bg-gray-200 text-gray-800" onclick="showMedTab('out')">Out of Stock (@stock.Where(s => !s.InStock).Count())</button>
+        </div>
+
+        <div id="tab-in" class="space-y-6">
+            @{ var catsIn = stock.Where(s => s.InStock).GroupBy(s => s.Category).OrderBy(g => g.Key).ToList(); }
+            @if (catsIn.Count > 0)
+            {
+                @foreach (var cat in catsIn)
+                {
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">@cat.Key</h3>
+                        <ul class="list-disc pl-6 space-y-1">
+                            @foreach (var med in cat)
+                            {
+                                <li class="flex items-center justify-between">
+                                    <span>@med.Name <span class="text-gray-500 text-sm">(Qty: @med.Quantity)</span></span>
+                                    <form method="post" asp-page-handler="ToggleStock" asp-route-id="@Model.Clinic.Id" class="inline">
+                                        <input type="hidden" name="ToggleName" value="@med.Name" />
+                                        <input type="hidden" name="ToggleToStock" value="false" />
+                                        <button type="submit" class="text-sm px-2 py-1 rounded bg-gray-200 text-gray-800 hover:bg-gray-300">Mark Out of Stock</button>
+                                    </form>
+                                    <form method="post" asp-page-handler="DispenseMedication" asp-route-id="@Model.Clinic.Id" class="inline ml-2">
+                                        <input type="hidden" name="DispenseName" value="@med.Name" />
+                                        <input type="number" name="DispenseQuantity" class="border rounded px-2 py-1 w-20 text-sm" min="1" value="1" />
+                                        <button type="submit" class="text-sm px-2 py-1 rounded bg-secondary text-white hover:bg-green-700">Dispense</button>
+                                    </form>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-gray-600">No items in stock.</p>
+            }
+        </div>
+
+        <div id="tab-out" class="space-y-6 hidden">
+            @{ var catsOut = stock.Where(s => !s.InStock).GroupBy(s => s.Category).OrderBy(g => g.Key).ToList(); }
+            @if (catsOut.Count > 0)
+            {
+                @foreach (var cat in catsOut)
+                {
+                    <div>
+                        <h3 class="text-lg font-semibold mb-2">@cat.Key</h3>
+                        <ul class="list-disc pl-6 space-y-1">
+                            @foreach (var med in cat)
+                            {
+                                <li class="flex items-center justify-between">
+                                    <span>@med.Name <span class="text-gray-500 text-sm">(Qty: @med.Quantity)</span></span>
+                                    <form method="post" asp-page-handler="ToggleStock" asp-route-id="@Model.Clinic.Id" class="inline">
+                                        <input type="hidden" name="ToggleName" value="@med.Name" />
+                                        <input type="hidden" name="ToggleToStock" value="true" />
+                                        <button type="submit" class="text-sm px-2 py-1 rounded bg-blue-600 text-white hover:bg-blue-700">Mark In Stock</button>
+                                    </form>
+                                </li>
+                            }
+                        </ul>
+                    </div>
+                }
+            }
+            else
+            {
+                <p class="text-gray-600">No items out of stock.</p>
+            }
+        </div>
+    </div>
+
+    <div class="card mt-6">
+        <h2 class="text-xl font-bold mb-4">Add Medication to Stock</h2>
+        <form method="post" asp-page-handler="AddMedication" asp-route-id="@Model.Clinic.Id" class="space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div>
+                    <label class="block text-sm text-gray-600">Name</label>
+                    <input type="text" name="NewMedicationName" class="w-full border rounded px-3 py-2" placeholder="e.g. Dolutegravir (DTG)" />
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600">Category</label>
+                    <select name="NewMedicationCategory" class="w-full border rounded px-3 py-2">
+                        <option value="HIV / AIDS">HIV / AIDS</option>
+                        <option value="Hypertension / Cardiovascular">Hypertension / Cardiovascular</option>
+                        <option value="Diabetes / Endocrine">Diabetes / Endocrine</option>
+                        <option value="Infections / Antibiotics">Infections / Antibiotics</option>
+                        <option value="Respiratory">Respiratory</option>
+                        <option value="Mental Health">Mental Health</option>
+                        <option value="Pain / Analgesics">Pain / Analgesics</option>
+                        <option value="Family Planning">Family Planning</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600">Quantity</label>
+                    <input type="number" name="NewMedicationQuantity" class="w-full border rounded px-3 py-2" min="0" value="0" />
+                </div>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+                <div class="flex items-end">
+                    <label class="inline-flex items-center">
+                        <input type="checkbox" name="NewMedicationInStock" class="mr-2" checked />
+                        <span>In Stock</span>
+                    </label>
+                </div>
+                <div>
+                    <label class="block text-sm text-gray-600">Low Stock Threshold</label>
+                    <input type="number" name="NewMedicationLowThreshold" class="w-full border rounded px-3 py-2" min="0" value="10" />
+                </div>
+            </div>
+            <div>
+                <button type="submit" class="btn btn-primary">Add to Stock</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    function showClinicTab(which) {
+        const overview = document.getElementById('overview-section');
+        const meds = document.getElementById('medications-section');
+        if (which === 'medications') {
+            overview.classList.add('hidden');
+            meds.classList.remove('hidden');
+        } else {
+            meds.classList.add('hidden');
+            overview.classList.remove('hidden');
+        }
+    }
+
+    function showMedTab(which) {
+        const inEl = document.getElementById('tab-in');
+        const outEl = document.getElementById('tab-out');
+        if (which === 'in') {
+            inEl.classList.remove('hidden');
+            outEl.classList.add('hidden');
+        } else {
+            outEl.classList.remove('hidden');
+            inEl.classList.add('hidden');
+        }
+    }
+</script>

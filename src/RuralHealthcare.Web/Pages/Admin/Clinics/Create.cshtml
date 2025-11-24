@@ -1,0 +1,118 @@
+@page
+@model CreateClinicModel
+@{
+    ViewData["Title"] = "Add Clinic/Hospital";
+}
+
+<div class="max-w-3xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Add New Clinic/Hospital</h1>
+
+    <form method="post" class="card space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">Facility Name *</label>
+            <input asp-for="Input.Name" class="input" required placeholder="e.g., Soweto Community Clinic" />
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Phone Number *</label>
+                <input asp-for="Input.PhoneNumber" type="tel" class="input" required placeholder="+27123456789" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2">Operating Hours</label>
+                <input asp-for="Input.OperatingHours" class="input" placeholder="Mon-Fri: 8AM-5PM" />
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Physical Address *</label>
+            <textarea asp-for="Input.Address" class="input" rows="3" required placeholder="Full street address"></textarea>
+        </div>
+
+        <div class="border-t pt-6">
+            <h3 class="text-lg font-semibold mb-4">📍 GPS Location</h3>
+            <p class="text-sm text-gray-600 mb-4">Required for emergency dispatch and distance calculations</p>
+            
+            <div class="grid grid-cols-2 gap-4 mb-4">
+                <div>
+                    <label class="block text-sm font-medium mb-2">Latitude *</label>
+                    <input asp-for="Input.Latitude" type="number" step="0.000001" class="input" required />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Longitude *</label>
+                    <input asp-for="Input.Longitude" type="number" step="0.000001" class="input" required />
+                </div>
+            </div>
+            
+            <button type="button" onclick="getCurrentLocation()" class="btn btn-secondary text-sm">
+                📍 Use Current Location
+            </button>
+            <button type="button" onclick="geocodeAddress()" class="btn bg-blue-100 text-blue-800 hover:bg-blue-200 text-sm ml-2">
+                🔍 Get from Address
+            </button>
+            <p id="locationStatus" class="text-sm text-gray-600 mt-2"></p>
+        </div>
+
+        <div class="border-t pt-6">
+            <h3 class="text-lg font-semibold mb-4">Facility Capabilities</h3>
+            
+            <div class="space-y-3">
+                <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input asp-for="Input.HasAmbulance" type="checkbox" class="mr-3 w-5 h-5" />
+                    <div>
+                        <div class="font-semibold">🚑 Ambulance Service Available</div>
+                        <div class="text-sm text-gray-600">This facility has ambulance for emergency dispatch</div>
+                    </div>
+                </label>
+
+                <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input asp-for="Input.IsActive" type="checkbox" class="mr-3 w-5 h-5" checked />
+                    <div>
+                        <div class="font-semibold">✓ Active Facility</div>
+                        <div class="text-sm text-gray-600">Facility is operational and accepting patients</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="submit" class="btn btn-primary">Save Clinic</button>
+            <a href="/admin/clinics" class="btn bg-gray-200 hover:bg-gray-300">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    function getCurrentLocation() {
+        const status = document.getElementById('locationStatus');
+        
+        if (navigator.geolocation) {
+            status.textContent = 'Getting location...';
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    document.querySelector('[name="Input.Latitude"]').value = position.coords.latitude;
+                    document.querySelector('[name="Input.Longitude"]').value = position.coords.longitude;
+                    status.textContent = `✓ Location captured: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+                    status.classList.add('text-green-600');
+                },
+                (error) => {
+                    status.textContent = '✗ Could not get location';
+                    status.classList.add('text-red-600');
+                }
+            );
+        }
+    }
+
+    function geocodeAddress() {
+        const address = document.querySelector('[name="Input.Address"]').value;
+        if (!address) {
+            alert('Please enter an address first');
+            return;
+        }
+        
+        // TODO: Implement geocoding API call
+        alert('Geocoding feature coming soon. Please enter coordinates manually or use current location.');
+    }
+</script>
+}

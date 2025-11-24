@@ -1,0 +1,83 @@
+@page
+@model MedicationsIndexModel
+@{
+    ViewData["Title"] = "Medications";
+}
+
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Medications</h1>
+    <a href="/medications/create" class="btn btn-primary">+ Add Medication</a>
+</div>
+
+<div class="card mb-6">
+    <form method="get" class="flex gap-4">
+        <input type="text" name="search" value="@Model.SearchTerm" placeholder="Search by medication name or patient..." class="input flex-1" />
+        <select name="filter" class="input w-48">
+            <option value="">All Medications</option>
+            <option value="active" selected="@(Model.Filter == "active")">Active Only</option>
+            <option value="inactive" selected="@(Model.Filter == "inactive")">Inactive</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+
+<div class="grid grid-cols-1 gap-6">
+    @foreach (var med in Model.Medications)
+    {
+        <div class="card">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-xl font-bold">@med.Name</h3>
+                    <p class="text-gray-600">Patient: @med.Patient.FirstName @med.Patient.LastName</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold @(med.IsActive ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800")">
+                    @(med.IsActive ? "Active" : "Inactive")
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <p class="text-sm text-gray-600">Dosage</p>
+                    <p class="font-semibold">@med.Dosage</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Frequency</p>
+                    <p class="font-semibold">@med.Frequency.Replace("_", " ")</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Start Date</p>
+                    <p class="font-semibold">@med.StartDate.ToString("dd MMM yyyy")</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Reminder Times</p>
+                    <p class="font-semibold text-sm">@string.Join(", ", med.ReminderTimes.Select(t => t.ToString("HH:mm")))</p>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(med.Instructions))
+            {
+                <div class="bg-gray-50 p-3 rounded mb-4">
+                    <p class="text-sm text-gray-700">@med.Instructions</p>
+                </div>
+            }
+
+            <div class="flex gap-2">
+                <a href="/patients/details?id=@med.PatientId" class="btn btn-primary text-sm">View Patient</a>
+                @if (med.IsActive)
+                {
+                    <button class="btn bg-gray-200 hover:bg-gray-300 text-sm">Mark Inactive</button>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Medications.Any())
+{
+    <div class="card text-center py-12">
+        <div class="text-6xl mb-4">💊</div>
+        <h3 class="text-xl font-bold mb-2">No Medications Found</h3>
+        <p class="text-gray-600 mb-4">Start by adding a medication for a patient</p>
+        <a href="/medications/create" class="btn btn-primary">Add First Medication</a>
+    </div>
+}

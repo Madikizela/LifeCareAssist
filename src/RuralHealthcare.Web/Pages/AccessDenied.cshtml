@@ -1,0 +1,31 @@
+@page
+@model AccessDeniedModel
+@{
+    ViewData["Title"] = "Access Denied";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Access Denied - Rural Healthcare Platform</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="bg-gray-50 min-h-screen flex items-center justify-center">
+    <div class="max-w-md w-full">
+        <div class="card text-center">
+            <div class="text-6xl mb-4">🚫</div>
+            <h1 class="text-3xl font-bold text-gray-800 mb-4">Access Denied</h1>
+            <p class="text-gray-600 mb-6">
+                You don't have permission to access this page. Please contact your administrator if you believe this is an error.
+            </p>
+            <div class="flex gap-4 justify-center">
+                <a href="/" class="btn btn-primary">Go to Home</a>
+                <a href="/logout" class="btn bg-gray-200 hover:bg-gray-300">Logout</a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

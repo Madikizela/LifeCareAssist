@@ -1,0 +1,94 @@
+@page
+@model ClinicsIndexModel
+@{
+    ViewData["Title"] = "Manage Clinics";
+}
+
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Clinics & Hospitals</h1>
+    <a href="/admin/clinics/create" class="btn btn-primary">+ Add New Clinic</a>
+</div>
+
+<div class="card mb-6">
+    <form method="get" class="flex gap-4">
+        <input type="text" name="search" value="@Model.SearchTerm" placeholder="Search clinics..." class="input flex-1" />
+        <select name="filter" class="input w-48">
+            <option value="">All Clinics</option>
+            <option value="active" selected="@(Model.Filter == "active")">Active Only</option>
+            <option value="with_ambulance" selected="@(Model.Filter == "with_ambulance")">With Ambulance</option>
+            <option value="stock_issues" selected="@(Model.Filter == "stock_issues")">Stock Issues</option>
+        </select>
+        <button type="submit" class="btn btn-primary">Search</button>
+    </form>
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    @foreach (var clinic in Model.Clinics)
+    {
+        <div class="card hover:shadow-lg transition-shadow">
+            <div class="flex justify-between items-start mb-3">
+                <h3 class="text-xl font-bold">@clinic.Name</h3>
+                @if (clinic.IsActive)
+                {
+                    <span class="px-2 py-1 bg-green-100 text-green-800 rounded text-xs">Active</span>
+                }
+                else
+                {
+                    <span class="px-2 py-1 bg-gray-100 text-gray-800 rounded text-xs">Inactive</span>
+                }
+            </div>
+            
+            <div class="space-y-2 text-sm mb-4">
+                <p class="text-gray-600">📍 @clinic.Address</p>
+                <p class="text-gray-600">📞 @clinic.PhoneNumber</p>
+                @if (clinic.HasAmbulance)
+                {
+                    <p class="text-green-600 font-semibold">🚑 Ambulance Available</p>
+                }
+                @if (!string.IsNullOrEmpty(clinic.OperatingHours))
+                {
+                    <p class="text-gray-600">🕐 @clinic.OperatingHours</p>
+                }
+                @if (Model.Filter == "stock_issues")
+                {
+                    var stock = clinic.MedicationStock ?? new List<RuralHealthcare.Core.Entities.ClinicMedicationItem>();
+                    var outItems = stock.Where(s => !s.InStock).Select(s => s.Name).ToList();
+                    var lowItems = stock.Where(s => s.InStock && s.Quantity <= s.LowThreshold).Select(s => $"{s.Name} (Qty: {s.Quantity})").ToList();
+                    if (outItems.Count > 0)
+                    {
+                        <p class="text-red-600 font-semibold">Out of Stock (@outItems.Count):</p>
+                        <ul class="list-disc pl-6 text-red-700">
+                            @foreach(var name in outItems.Take(5)) { <li>@name</li> }
+                            @if (outItems.Count > 5) { <li>+@((outItems.Count - 5)) more…</li> }
+                        </ul>
+                    }
+                    if (lowItems.Count > 0)
+                    {
+                        <p class="text-yellow-600 font-semibold mt-2">Low Stock (@lowItems.Count):</p>
+                        <ul class="list-disc pl-6 text-yellow-700">
+                            @foreach(var name in lowItems.Take(5)) { <li>@name</li> }
+                            @if (lowItems.Count > 5) { <li>+@((lowItems.Count - 5)) more…</li> }
+                        </ul>
+                    }
+                    if (outItems.Count == 0 && lowItems.Count == 0)
+                    {
+                        <p class="text-gray-600">No stock issues.</p>
+                    }
+                }
+            </div>
+
+            <div class="flex gap-2 pt-3 border-t">
+                <a href="/admin/clinics/details?id=@clinic.Id" class="text-blue-600 hover:underline text-sm">View</a>
+                <a href="/admin/clinics/edit?id=@clinic.Id" class="text-green-600 hover:underline text-sm">Edit</a>
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Clinics.Any())
+{
+    <div class="card text-center py-12">
+        <p class="text-gray-500 mb-4">No clinics found</p>
+        <a href="/admin/clinics/create" class="btn btn-primary">Add First Clinic</a>
+    </div>
+}

@@ -1,0 +1,157 @@
+@page
+@model PatientDetailsModel
+@{
+    ViewData["Title"] = $"{Model.Patient.FirstName} {Model.Patient.LastName}";
+}
+
+<div class="mb-6">
+    <a href="/patients" class="text-blue-600 hover:underline mb-4 inline-block">← Back to Patients</a>
+    <div class="flex justify-between items-start">
+        <div>
+            <h1 class="text-3xl font-bold">@Model.Patient.FirstName @Model.Patient.LastName</h1>
+            <p class="text-gray-600">ID: @Model.Patient.IdNumber</p>
+        </div>
+        <div class="flex gap-2">
+            <a href="/patients/@Model.Patient.Id/edit" class="btn btn-primary">Edit</a>
+            <button onclick="callEmergency()" class="btn btn-danger">🚑 Emergency</button>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="lg:col-span-2 space-y-6">
+        <div class="card">
+            <h2 class="text-xl font-bold mb-4">Personal Information</h2>
+            <dl class="grid grid-cols-2 gap-4">
+                <div>
+                    <dt class="text-sm text-gray-600">Date of Birth</dt>
+                    <dd class="font-medium">@Model.Patient.DateOfBirth.ToString("dd MMM yyyy")</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-600">Age</dt>
+                    <dd class="font-medium">@((DateTime.Now.Year - Model.Patient.DateOfBirth.Year)) years</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-600">Phone</dt>
+                    <dd class="font-medium">@Model.Patient.PhoneNumber</dd>
+                </div>
+                <div>
+                    <dt class="text-sm text-gray-600">Language</dt>
+                    <dd class="font-medium">@Model.Patient.PreferredLanguage.ToUpper()</dd>
+                </div>
+                <div class="col-span-2">
+                    <dt class="text-sm text-gray-600">Address</dt>
+                    <dd class="font-medium">@(Model.Patient.HomeAddress ?? "Not provided")</dd>
+                </div>
+            </dl>
+        </div>
+
+        <div class="card">
+            <h2 class="text-xl font-bold mb-4">Medical Information</h2>
+            <div class="space-y-4">
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2">Chronic Conditions</h3>
+                    @if (Model.Patient.ChronicConditions.Any())
+                    {
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var condition in Model.Patient.ChronicConditions)
+                            {
+                                <span class="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm">@condition</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-gray-400">None recorded</p>
+                    }
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2">Allergies</h3>
+                    @if (Model.Patient.Allergies.Any())
+                    {
+                        <div class="flex flex-wrap gap-2">
+                            @foreach (var allergy in Model.Patient.Allergies)
+                            {
+                                <span class="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">⚠️ @allergy</span>
+                            }
+                        </div>
+                    }
+                    else
+                    {
+                        <p class="text-gray-400">None recorded</p>
+                    }
+                </div>
+                <div>
+                    <h3 class="text-sm font-semibold text-gray-600 mb-2">Blood Type</h3>
+                    <p class="font-medium">@(Model.Patient.BloodType ?? "Unknown")</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-xl font-bold">Active Medications</h2>
+                <a href="/medications/create?patientId=@Model.Patient.Id" class="btn btn-secondary text-sm">+ Add Medication</a>
+            </div>
+            <div class="space-y-3">
+                @foreach (var med in Model.Medications)
+                {
+                    <div class="p-4 bg-gray-50 rounded-lg">
+                        <div class="flex justify-between items-start">
+                            <div>
+                                <h3 class="font-semibold">@med.Name</h3>
+                                <p class="text-sm text-gray-600">@med.Dosage - @med.Frequency</p>
+                                <p class="text-xs text-gray-500 mt-1">Times: @string.Join(", ", med.ReminderTimes.Select(t => t.ToString("HH:mm")))</p>
+                            </div>
+                            <a href="/medications/@med.Id" class="text-blue-600 text-sm hover:underline">View</a>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="space-y-6">
+        <div class="card bg-red-50 border-2 border-red-200">
+            <h2 class="text-lg font-bold mb-3">Emergency Contact</h2>
+            @if (!string.IsNullOrEmpty(Model.Patient.EmergencyContactName))
+            {
+                <p class="font-medium">@Model.Patient.EmergencyContactName</p>
+                <p class="text-sm text-gray-600">@Model.Patient.EmergencyContactPhone</p>
+            }
+            else
+            {
+                <p class="text-gray-400">Not provided</p>
+            }
+        </div>
+
+        <div class="card">
+            <h2 class="text-lg font-bold mb-3">Quick Actions</h2>
+            <div class="space-y-2">
+                <a href="/appointments/create?patientId=@Model.Patient.Id" class="block w-full btn btn-primary text-center">
+                    📅 Schedule Appointment
+                </a>
+                <a href="/medications/create?patientId=@Model.Patient.Id" class="block w-full btn btn-secondary text-center">
+                    💊 Add Medication
+                </a>
+                <button onclick="sendReminder()" class="block w-full btn bg-blue-100 text-blue-800 hover:bg-blue-200">
+                    📱 Send Reminder
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+    function callEmergency() {
+        if (confirm('Call emergency services for this patient?')) {
+            window.location.href = '/emergency/create?patientId=@Model.Patient.Id';
+        }
+    }
+    
+    function sendReminder() {
+        alert('Reminder sent to patient');
+    }
+</script>
+}

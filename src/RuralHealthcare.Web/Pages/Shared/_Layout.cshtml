@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Rural Healthcare Platform</title>
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+</head>
+<body class="bg-gray-50">
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <a href="/" class="text-2xl font-bold text-primary">🏥 Rural Healthcare</a>
+                </div>
+                @{ var role = Context.Session.GetString("UserRole"); }
+                <div class="flex items-center space-x-4">
+                    <a href="/patients" class="text-gray-700 hover:text-primary">Patients</a>
+                    <a href="/medications" class="text-gray-700 hover:text-primary">Medications</a>
+                    <a href="/appointments" class="text-gray-700 hover:text-primary">Appointments</a>
+                    <a href="/find-medication" class="text-gray-700 hover:text-primary">Find Medication</a>
+                    @if (role == "system_admin" || role == "clinic_admin")
+                    {
+                        <a href="/admin/dashboard" class="text-gray-700 hover:text-primary">Dashboard</a>
+                        <a href="/admin/users" class="text-gray-700 hover:text-primary">Users</a>
+                        <a href="/admin/clinics" class="text-gray-700 hover:text-primary">Clinics</a>
+                    }
+                    <a href="/account/changepassword" class="text-gray-700 hover:text-primary">Change Password</a>
+                    <a href="/emergency/create" class="btn btn-danger">🚑 Emergency</a>
+                    <a href="/logout" class="text-gray-700 hover:text-red-600">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        @RenderBody()
+    </main>
+
+    <footer class="bg-white border-t mt-12">
+        <div class="max-w-7xl mx-auto px-4 py-6 text-center text-gray-600">
+            <p>&copy; 2024 Rural Healthcare Platform - Serving South African Communities</p>
+        </div>
+    </footer>
+
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

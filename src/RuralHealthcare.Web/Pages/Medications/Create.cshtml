@@ -1,0 +1,86 @@
+@page
+@model CreateMedicationModel
+@{
+    ViewData["Title"] = "Add Medication";
+}
+
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Add Medication</h1>
+
+    <form method="post" class="card space-y-6">
+        <div>
+            <label class="block text-sm font-medium mb-2">Patient *</label>
+            <select asp-for="Input.PatientId" class="input" required>
+                <option value="">Select Patient</option>
+                @foreach (var patient in Model.Patients)
+                {
+                    <option value="@patient.Id">@patient.FirstName @patient.LastName</option>
+                }
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Medication Name *</label>
+            <input asp-for="Input.Name" class="input" required placeholder="e.g., Metformin" />
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Dosage *</label>
+                <input asp-for="Input.Dosage" class="input" required placeholder="e.g., 500mg" />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2">Frequency *</label>
+                <select asp-for="Input.Frequency" class="input" required>
+                    <option value="once_daily">Once Daily</option>
+                    <option value="twice_daily">Twice Daily</option>
+                    <option value="three_times_daily">Three Times Daily</option>
+                    <option value="weekly">Weekly</option>
+                    <option value="as_needed">As Needed</option>
+                </select>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Reminder Times *</label>
+            <div id="reminderTimes" class="space-y-2">
+                <input type="time" name="reminderTime" class="input" required />
+            </div>
+            <button type="button" onclick="addReminderTime()" class="mt-2 text-blue-600 text-sm hover:underline">+ Add Another Time</button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">Start Date *</label>
+                <input asp-for="Input.StartDate" type="date" class="input" required />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2">End Date</label>
+                <input asp-for="Input.EndDate" type="date" class="input" />
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Instructions</label>
+            <textarea asp-for="Input.Instructions" class="input" rows="3" placeholder="e.g., Take with food"></textarea>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="submit" class="btn btn-primary">Save Medication</button>
+            <a href="/patients" class="btn bg-gray-200 hover:bg-gray-300">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    function addReminderTime() {
+        const container = document.getElementById('reminderTimes');
+        const input = document.createElement('input');
+        input.type = 'time';
+        input.name = 'reminderTime';
+        input.className = 'input';
+        container.appendChild(input);
+    }
+</script>
+}

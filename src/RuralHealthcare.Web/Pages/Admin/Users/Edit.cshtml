@@ -1,0 +1,69 @@
+@page "{id:guid}"
+@model EditUserModel
+@{
+    ViewData["Title"] = "Edit User";
+}
+
+<div class="max-w-2xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Edit User</h1>
+
+    <form method="post" class="card space-y-6">
+        <input type="hidden" asp-for="Input.Id" />
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+                <label class="block text-sm font-medium mb-2">First Name *</label>
+                <input asp-for="Input.FirstName" class="input" required />
+            </div>
+            <div>
+                <label class="block text-sm font-medium mb-2">Last Name *</label>
+                <input asp-for="Input.LastName" class="input" required />
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Email *</label>
+            <input asp-for="Input.Email" type="email" class="input" required />
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Phone Number</label>
+            <input asp-for="Input.PhoneNumber" type="tel" class="input" />
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Role *</label>
+            <select asp-for="Input.Role" class="input" required>
+                <option value="">Select Role</option>
+                <option value="system_admin">System Admin</option>
+                <option value="clinic_admin">Clinic Admin</option>
+                <option value="health_worker">Health Worker</option>
+                <option value="caregiver">Caregiver</option>
+            </select>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Assign to Clinic</label>
+            <select asp-for="Input.ClinicId" class="input">
+                <option value="">No Clinic Assignment</option>
+                @foreach (var clinic in Model.Clinics)
+                {
+                    <option value="@clinic.Id">@clinic.Name</option>
+                }
+            </select>
+            <p class="text-xs text-gray-600 mt-1">Required for Clinic Admins and Health Workers</p>
+        </div>
+
+        <div>
+            <label class="flex items-center">
+                <input asp-for="Input.IsActive" type="checkbox" class="mr-2" />
+                <span class="text-sm font-medium">Active User</span>
+            </label>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="submit" class="btn btn-primary">Save Changes</button>
+            <a href="/admin/users" class="btn bg-gray-200 hover:bg-gray-300">Cancel</a>
+        </div>
+    </form>
+</div>

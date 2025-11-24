@@ -1,0 +1,178 @@
+@page
+@model CreateEmergencyModel
+@{
+    ViewData["Title"] = "Emergency Call";
+}
+
+<div class="max-w-2xl mx-auto">
+    <div class="card bg-red-50 border-2 border-red-500 mb-6">
+        <h1 class="text-3xl font-bold text-red-700 mb-2">🚨 Emergency Call</h1>
+        <p class="text-red-600">This will immediately dispatch emergency services</p>
+    </div>
+
+    <form method="post" class="card space-y-6" id="emergencyForm" asp-antiforgery="true">
+        @if (!ModelState.IsValid)
+        {
+            <div class="bg-red-50 border-l-4 border-red-500 p-4">
+                <h3 class="font-bold text-red-800 mb-2">Please fix the following errors:</h3>
+                <ul class="list-disc list-inside text-red-700">
+                    @foreach (var error in ModelState.Values.SelectMany(v => v.Errors))
+                    {
+                        <li>@error.ErrorMessage</li>
+                    }
+                </ul>
+            </div>
+        }
+        
+        <!-- Caller Type Selection -->
+        <div class="bg-gray-50 p-4 rounded-lg">
+            <label class="block text-sm font-medium mb-3">Caller Type *</label>
+            <div class="flex gap-4">
+                <label class="flex items-center cursor-pointer">
+                    <input type="radio" asp-for="Input.IsRegisteredPatient" value="true" checked class="mr-2" onchange="toggleCallerType(true)" />
+                    <span>Registered Patient</span>
+                </label>
+                <label class="flex items-center cursor-pointer">
+                    <input type="radio" asp-for="Input.IsRegisteredPatient" value="false" class="mr-2" onchange="toggleCallerType(false)" />
+                    <span>Anonymous/Walk-in</span>
+                </label>
+            </div>
+        </div>
+
+        <!-- Registered Patient Section -->
+        <div id="registeredSection">
+            <label class="block text-sm font-medium mb-2">Select Patient *</label>
+            <select asp-for="Input.PatientId" class="input" id="patientSelect">
+                <option value="">Select Patient</option>
+                @foreach (var patient in Model.Patients)
+                {
+                    <option value="@patient.Id">@patient.FirstName @patient.LastName - @patient.PhoneNumber</option>
+                }
+            </select>
+        </div>
+
+        <!-- Anonymous Caller Section -->
+        <div id="anonymousSection" style="display: none;">
+            <div class="space-y-4 bg-yellow-50 p-4 rounded-lg">
+                <p class="text-sm text-yellow-800 mb-3">
+                    <strong>Walk-in/Anonymous Emergency:</strong> Please provide basic information
+                </p>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Caller Name *</label>
+                    <input asp-for="Input.CallerName" class="input" placeholder="Full name" id="callerName" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">Phone Number *</label>
+                    <input asp-for="Input.CallerPhone" type="tel" class="input" placeholder="+27..." id="callerPhone" />
+                </div>
+                <div>
+                    <label class="block text-sm font-medium mb-2">ID Number (Optional)</label>
+                    <input asp-for="Input.CallerIdNumber" class="input" placeholder="South African ID" />
+                    <p class="text-xs text-gray-600 mt-1">Can be used to create patient record later</p>
+                </div>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Emergency Type *</label>
+            <div class="space-y-2">
+                <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input type="radio" asp-for="Input.EmergencyType" value="medical" class="mr-3" checked />
+                    <div>
+                        <div class="font-semibold">🚑 Medical Emergency</div>
+                        <div class="text-sm text-gray-600">Ambulance required</div>
+                    </div>
+                </label>
+                <label class="flex items-center p-4 border rounded-lg cursor-pointer hover:bg-gray-50">
+                    <input type="radio" asp-for="Input.EmergencyType" value="security" class="mr-3" />
+                    <div>
+                        <div class="font-semibold">👮 Security Emergency</div>
+                        <div class="text-sm text-gray-600">Police/Security required</div>
+                    </div>
+                </label>
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Description</label>
+            <textarea asp-for="Input.Description" class="input" rows="4" placeholder="Describe the emergency situation..."></textarea>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium mb-2">Location Description</label>
+            <input asp-for="Input.LocationDescription" class="input" placeholder="e.g., Corner of Main St and 5th Ave, near the clinic" />
+            <p class="text-xs text-gray-600 mt-1">Provide landmarks or address if GPS is not available</p>
+        </div>
+
+        <div class="bg-blue-50 p-4 rounded-lg">
+            <h3 class="font-semibold mb-2">📍 GPS Location</h3>
+            <p class="text-sm text-gray-600 mb-3">Click below to capture current GPS coordinates</p>
+            <button type="button" onclick="getLocation()" class="btn btn-primary text-sm">Use Current Location</button>
+            <input type="hidden" name="Input.Latitude" id="latitude" value="" />
+            <input type="hidden" name="Input.Longitude" id="longitude" value="" />
+            <p id="locationStatus" class="text-sm text-gray-600 mt-2"></p>
+        </div>
+
+        <div class="flex gap-4">
+            <button type="submit" class="btn btn-danger flex-1">🚨 Dispatch Emergency Services</button>
+            <a href="/emergency" class="btn bg-gray-200 hover:bg-gray-300">Cancel</a>
+        </div>
+    </form>
+</div>
+
+@section Scripts {
+<script>
+    function toggleCallerType(isRegistered) {
+        const registeredSection = document.getElementById('registeredSection');
+        const anonymousSection = document.getElementById('anonymousSection');
+        const patientSelect = document.getElementById('patientSelect');
+        const callerName = document.getElementById('callerName');
+        const callerPhone = document.getElementById('callerPhone');
+        
+        if (isRegistered) {
+            registeredSection.style.display = 'block';
+            anonymousSection.style.display = 'none';
+            patientSelect.required = true;
+            if (callerName) callerName.required = false;
+            if (callerPhone) callerPhone.required = false;
+        } else {
+            registeredSection.style.display = 'none';
+            anonymousSection.style.display = 'block';
+            patientSelect.required = false;
+            patientSelect.value = '';
+            if (callerName) callerName.required = true;
+            if (callerPhone) callerPhone.required = true;
+        }
+    }
+    
+    function getLocation() {
+        const status = document.getElementById('locationStatus');
+        
+        if (navigator.geolocation) {
+            status.textContent = 'Getting location...';
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    // Use toString() to ensure proper decimal format
+                    document.getElementById('latitude').value = position.coords.latitude.toString();
+                    document.getElementById('longitude').value = position.coords.longitude.toString();
+                    status.textContent = `✓ Location captured: ${position.coords.latitude.toFixed(6)}, ${position.coords.longitude.toFixed(6)}`;
+                    status.classList.add('text-green-600');
+                },
+                (error) => {
+                    status.textContent = '✗ Could not get location. Please provide location description.';
+                    status.classList.add('text-red-600');
+                }
+            );
+        } else {
+            status.textContent = '✗ Geolocation not supported';
+            status.classList.add('text-red-600');
+        }
+    }
+    
+    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        const isRegistered = document.querySelector('input[name="Input.IsRegisteredPatient"]:checked').value === 'true';
+        toggleCallerType(isRegistered);
+    });
+</script>
+}

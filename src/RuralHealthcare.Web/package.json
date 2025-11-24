@@ -1,0 +1,11 @@
+{
+  "name": "rural-healthcare-web",
+  "version": "1.0.0",
+  "scripts": {
+    "build:css": "npx tailwindcss -i ./Styles/site.css -o ./wwwroot/css/site.css --minify",
+    "watch:css": "npx tailwindcss -i ./Styles/site.css -o ./wwwroot/css/site.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.0"
+  }
+}

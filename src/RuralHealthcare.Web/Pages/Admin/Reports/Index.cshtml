@@ -1,0 +1,124 @@
+@page
+@model RuralHealthcare.Web.Pages.Admin.Reports.AdminReportsModel
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<h1 class="text-3xl font-bold mb-6">📊 Reports</h1>
+
+<div class="card mb-6">
+    <form method="get" class="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
+        <div>
+            <label class="label">Start Date</label>
+            <input type="date" name="StartDate" value="@Model.StartDate?.ToString("yyyy-MM-dd")" class="input" />
+        </div>
+        <div>
+            <label class="label">End Date</label>
+            <input type="date" name="EndDate" value="@Model.EndDate?.ToString("yyyy-MM-dd")" class="input" />
+        </div>
+        <div>
+            <label class="label">Clinic</label>
+            <select name="ClinicId" class="input">
+                <option value="">All Clinics</option>
+                @foreach (var clinic in Model.Clinics)
+                {
+                    <option value="@clinic.Id" selected="@(Model.ClinicId == clinic.Id)">@clinic.Name</option>
+                }
+            </select>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary w-full">Apply Filters</button>
+        </div>
+    </form>
+    <div class="text-sm text-gray-600 mt-2">
+        Showing data from <strong>@((Model.StartDate ?? DateTime.UtcNow.AddDays(-30)).ToString("yyyy-MM-dd"))</strong>
+        to <strong>@((Model.EndDate ?? DateTime.UtcNow).ToString("yyyy-MM-dd"))</strong>.
+    </div>
+    @if (Model.ClinicId.HasValue)
+    {
+        var name = Model.Clinics.FirstOrDefault(c => c.Id == Model.ClinicId)?.Name ?? "Selected Clinic";
+        <div class="text-sm text-gray-600">Clinic: <strong>@name</strong></div>
+    }
+</div>
+
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="card">
+        <h3 class="text-lg font-semibold">Total Appointments</h3>
+        <div class="text-4xl font-bold">@Model.TotalAppointments</div>
+    </div>
+    <div class="card">
+        <h3 class="text-lg font-semibold">Completed</h3>
+        <div class="text-4xl font-bold text-green-600">@Model.CompletedAppointments</div>
+    </div>
+    <div class="card">
+        <h3 class="text-lg font-semibold">Missed</h3>
+        <div class="text-4xl font-bold text-red-600">@Model.MissedAppointments</div>
+    </div>
+    <div class="card">
+        <h3 class="text-lg font-semibold">Cancelled</h3>
+        <div class="text-4xl font-bold text-yellow-600">@Model.CancelledAppointments</div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Appointments per Day</h2>
+        <div class="space-y-2">
+            @foreach (var d in Model.AppointmentsPerDay)
+            {
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-700">@d.Date</span>
+                    <span class="font-semibold">@d.Count</span>
+                </div>
+            }
+            @if (!Model.AppointmentsPerDay.Any())
+            {
+                <div class="text-gray-500">No appointments in this period.</div>
+            }
+        </div>
+    </div>
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Appointments by Clinic</h2>
+        <div class="space-y-2">
+            @foreach (var c in Model.AppointmentsByClinic)
+            {
+                <div class="flex items-center justify-between">
+                    <span class="text-gray-700">@c.ClinicName</span>
+                    <span class="font-semibold">@c.Count</span>
+                </div>
+            }
+            @if (!Model.AppointmentsByClinic.Any())
+            {
+                <div class="text-gray-500">No clinic appointment data.</div>
+            }
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+    <div class="card">
+        <h2 class="text-xl font-bold mb-2">Emergency Calls</h2>
+        <div class="space-y-1">
+            <div class="flex justify-between"><span>Total</span><span class="font-semibold">@Model.EmergencyCalls</span></div>
+            <div class="flex justify-between"><span>Dispatched</span><span class="font-semibold">@Model.EmergenciesDispatched</span></div>
+            <div class="flex justify-between"><span>Completed</span><span class="font-semibold">@Model.EmergenciesCompleted</span></div>
+        </div>
+    </div>
+    <div class="card">
+        <h2 class="text-xl font-bold mb-2">New Patients</h2>
+        <div class="text-4xl font-bold">@Model.NewPatients</div>
+    </div>
+    <div class="card">
+        <h2 class="text-xl font-bold mb-2">Medication Adherence</h2>
+        <div class="text-4xl font-bold text-green-600">@Model.AdherenceRate@("%")</div>
+        <div class="text-sm text-gray-600">Based on medication logs in period</div>
+    </div>
+</div>
+
+<div class="card">
+    <h2 class="text-xl font-bold mb-4">Export</h2>
+    <div class="flex gap-3">
+        <a class="btn bg-gray-200 hover:bg-gray-300" href="@Url.Page(null, "ExportCsv", new { StartDate = Model.StartDate?.ToString("yyyy-MM-dd"), EndDate = Model.EndDate?.ToString("yyyy-MM-dd"), ClinicId = Model.ClinicId })">Export CSV</a>
+        <a class="btn bg-gray-200 hover:bg-gray-300" href="#">Export PDF</a>
+    </div>
+</div>

@@ -1,0 +1,256 @@
+@page
+@model AdminDashboardModel
+@{
+    ViewData["Title"] = "System Admin Dashboard";
+}
+
+@{
+    var userRole = HttpContext.Session.GetString("UserRole");
+    var dashboardTitle = userRole == "clinic_admin" ? "Clinic Administration" : "System Administration";
+}
+
+<h1 class="text-3xl font-bold mb-6">@dashboardTitle</h1>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+    <div class="card bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-semibold">Total Patients</h3>
+            <span class="text-2xl">👥</span>
+        </div>
+        <p class="text-4xl font-bold">@Model.TotalPatients</p>
+        <a href="/patients" class="text-sm underline mt-2 inline-block">View All</a>
+    </div>
+    
+    <div class="card bg-gradient-to-br from-green-500 to-green-600 text-white">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-semibold">Active Clinics</h3>
+            <span class="text-2xl">🏥</span>
+        </div>
+        <p class="text-4xl font-bold">@Model.ActiveClinics</p>
+        <a href="/admin/clinics" class="text-sm underline mt-2 inline-block">Manage</a>
+    </div>
+    
+    <div class="card bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-semibold">Health Workers</h3>
+            <span class="text-2xl">🧑‍⚕️</span>
+        </div>
+        <p class="text-4xl font-bold">@Model.HealthWorkers</p>
+        <a href="/admin/users" class="text-sm underline mt-2 inline-block hover:text-gray-200">Manage Users</a>
+    </div>
+    
+    <div class="card bg-gradient-to-br from-red-500 to-red-600 text-white">
+        <div class="flex items-center justify-between mb-2">
+            <h3 class="text-lg font-semibold">Emergency Calls (24h)</h3>
+            <span class="text-2xl">🚨</span>
+        </div>
+        <p class="text-4xl font-bold">@Model.EmergencyCalls24h</p>
+        <a href="/emergency" class="text-sm underline mt-2 inline-block">View</a>
+    </div>
+        <div class="card text-white" style="background: linear-gradient(to bottom right,#dc2626,#b91c1c)">
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold">Out of Stock</h3>
+                    <span class="text-2xl">⚠️</span>
+                </div>
+                <p class="text-4xl font-bold mt-2">@Model.OutOfStockItems</p>
+                <a href="/admin/clinics?filter=stock_issues" class="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded" style="background: rgba(255,255,255,0.2)">
+                    <span class="text-white">View Clinics</span>
+                    <span class="text-white">→</span>
+                </a>
+            </div>
+        </div>
+
+        <div class="card text-white" style="background: linear-gradient(to bottom right,#f59e0b,#d97706)">
+            <div class="p-6">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold">Low Stock</h3>
+                    <span class="text-2xl">📉</span>
+                </div>
+                <p class="text-4xl font-bold mt-2">@Model.LowStockItems</p>
+                <a href="/admin/clinics?filter=stock_issues" class="mt-3 inline-flex items-center gap-2 px-3 py-2 rounded" style="background: rgba(255,255,255,0.2)">
+                    <span class="text-white">View Clinics</span>
+                    <span class="text-white">→</span>
+                </a>
+            </div>
+        </div>
+    </div>
+
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Quick Actions</h2>
+        <div class="grid grid-cols-2 gap-3">
+            @if (userRole == "system_admin")
+            {
+                <a href="/admin/clinics/create" class="btn btn-primary text-center">
+                    🏥 Add Clinic
+                </a>
+            }
+            <a href="/admin/users/create" class="btn btn-secondary text-center">
+                👤 Add User
+            </a>
+            <a href="/patients/create" class="btn bg-blue-100 text-blue-800 hover:bg-blue-200 text-center">
+                👥 Add Patient
+            </a>
+            @if (userRole == "system_admin")
+            {
+                <a href="/admin/reports" class="btn bg-purple-100 text-purple-800 hover:bg-purple-200 text-center">
+                    📊 Reports
+                </a>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">System Health</h2>
+        <div class="space-y-3">
+            <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                <span class="font-medium">Database</span>
+                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">✓ Healthy</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-green-50 rounded">
+                <span class="font-medium">SMS Service</span>
+                <span class="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">✓ Connected</span>
+            </div>
+            <div class="flex justify-between items-center p-3 bg-yellow-50 rounded">
+                <span class="font-medium">Reminder Service</span>
+                <span class="px-3 py-1 bg-yellow-100 text-yellow-800 rounded-full text-sm">⚠ Pending Setup</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Recent Activity</h2>
+        <div class="space-y-3 text-sm">
+            @foreach (var a in Model.RecentActivities)
+            {
+                <div class="pb-2 border-b">
+                    <p class="font-medium">@a.Title @if(!string.IsNullOrEmpty(a.Detail)){<span class="text-gray-600">- @a.Detail</span>}</p>
+                    <p class="text-gray-600">@a.When</p>
+                </div>
+            }
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Medication Adherence</h2>
+        <div class="text-center">
+            <div class="text-5xl font-bold text-green-600 mb-2">@Model.OverallAdherencePercent%</div>
+            <p class="text-gray-600">Overall adherence rate (last 7 days)</p>
+        </div>
+    </div>
+
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Alerts</h2>
+        <div class="space-y-2">
+            <div class="p-3 bg-red-50 border-l-4 border-red-500 rounded">
+                <p class="font-semibold text-sm">@Model.MissedDoseAlertPatients patients missed 3+ doses (7 days)</p>
+                <a href="#" class="text-xs text-red-600 hover:underline">Review →</a>
+            </div>
+            <div class="p-3 bg-yellow-50 border-l-4 border-yellow-500 rounded">
+                <p class="font-semibold text-sm">@Model.AppointmentsToday appointments today</p>
+                <a href="#" class="text-xs text-yellow-600 hover:underline">View →</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mt-8">
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Appointments (7 days)</h2>
+        <div class="relative h-64">
+            <canvas id="appointmentsChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Emergency Calls (7 days)</h2>
+        <div class="relative h-64">
+            <canvas id="emergenciesChart"></canvas>
+        </div>
+    </div>
+    <div class="card">
+        <h2 class="text-xl font-bold mb-4">Medication Adherence (7 days)</h2>
+        <div class="relative h-64">
+            <canvas id="adherenceChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    const labels = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.ChartLabels7));
+    const appointments = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Appointments7));
+    const emergencies = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Emergencies7));
+    const adherence = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Adherence7));
+
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: true }
+        },
+        scales: {
+            x: { ticks: { autoSkip: true, maxRotation: 0, maxTicksLimit: 7 } },
+            y: { beginAtZero: true }
+        }
+    };
+
+    new Chart(document.getElementById('appointmentsChart'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Appointments',
+                data: appointments,
+                backgroundColor: 'rgba(59, 130, 246, 0.5)',
+                borderColor: '#3b82f6',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: { x: { ticks: { autoSkip: true, maxRotation: 0 } }, y: { beginAtZero: true } }
+        }
+    });
+
+    new Chart(document.getElementById('emergenciesChart'), {
+        type: 'bar',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Emergencies',
+                data: emergencies,
+                backgroundColor: 'rgba(239, 68, 68, 0.5)',
+                borderColor: '#ef4444',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: { x: { ticks: { autoSkip: true, maxRotation: 0 } }, y: { beginAtZero: true } }
+        }
+    });
+
+    new Chart(document.getElementById('adherenceChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{
+                label: 'Adherence %',
+                data: adherence,
+                borderColor: '#22c55e',
+                backgroundColor: 'rgba(34, 197, 94, 0.2)',
+                tension: 0.3,
+                fill: true,
+                pointRadius: 3
+            }]
+        },
+        options: {
+            ...commonOptions,
+            scales: { x: { ticks: { autoSkip: true, maxRotation: 0 } }, y: { beginAtZero: true, max: 100 } }
+        }
+    });
+</script>

@@ -1,0 +1,120 @@
+@page
+@model AppointmentsIndexModel
+@{
+    ViewData["Title"] = "Appointments";
+}
+
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-3xl font-bold">Appointments</h1>
+    <a href="/appointments/create" class="btn btn-primary">+ Schedule Appointment</a>
+</div>
+
+<div class="card mb-6">
+    <div class="flex gap-2 overflow-x-auto">
+        <a href="/appointments" class="btn @(string.IsNullOrEmpty(Model.Filter) ? "btn-primary" : "bg-gray-200 hover:bg-gray-300")">All</a>
+        <a href="/appointments?filter=today" class="btn @(Model.Filter == "today" ? "btn-primary" : "bg-gray-200 hover:bg-gray-300")">Today</a>
+        <a href="/appointments?filter=upcoming" class="btn @(Model.Filter == "upcoming" ? "btn-primary" : "bg-gray-200 hover:bg-gray-300")">Upcoming</a>
+        <a href="/appointments?filter=completed" class="btn @(Model.Filter == "completed" ? "btn-primary" : "bg-gray-200 hover:bg-gray-300")">Completed</a>
+        <a href="/appointments?filter=missed" class="btn @(Model.Filter == "missed" ? "btn-primary" : "bg-gray-200 hover:bg-gray-300")">Missed</a>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 gap-6">
+    @foreach (var appointment in Model.Appointments)
+    {
+        <div class="card border-l-4 @GetStatusBorderClass(appointment.Status)">
+            <div class="flex justify-between items-start mb-4">
+                <div>
+                    <h3 class="text-xl font-bold">@appointment.Patient.FirstName @appointment.Patient.LastName</h3>
+                    <p class="text-gray-600">@appointment.Patient.PhoneNumber</p>
+                </div>
+                <span class="px-3 py-1 rounded-full text-sm font-semibold @GetStatusBadgeClass(appointment.Status)">
+                    @appointment.Status.ToUpper()
+                </span>
+            </div>
+
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                <div>
+                    <p class="text-sm text-gray-600">Date & Time</p>
+                    <p class="font-semibold">@appointment.ScheduledDateTime.ToString("dd MMM yyyy")</p>
+                    <p class="text-sm">@appointment.ScheduledDateTime.ToString("HH:mm")</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Type</p>
+                    <p class="font-semibold">@appointment.AppointmentType.Replace("_", " ")</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Clinic</p>
+                    <p class="font-semibold">@(appointment.Clinic?.Name ?? "Not specified")</p>
+                </div>
+                <div>
+                    <p class="text-sm text-gray-600">Status</p>
+                    <p class="font-semibold">
+                        @if (appointment.ScheduledDateTime < DateTime.Now && appointment.Status == "scheduled")
+                        {
+                            <span class="text-red-600">Overdue</span>
+                        }
+                        else if (appointment.ScheduledDateTime.Date == DateTime.Today && appointment.Status == "scheduled")
+                        {
+                            <span class="text-green-600">Today</span>
+                        }
+                        else
+                        {
+                            <span>@appointment.Status</span>
+                        }
+                    </p>
+                </div>
+            </div>
+
+            @if (!string.IsNullOrEmpty(appointment.Notes))
+            {
+                <div class="bg-gray-50 p-3 rounded mb-4">
+                    <p class="text-sm text-gray-700">@appointment.Notes</p>
+                </div>
+            }
+
+            <div class="flex gap-2">
+                <a href="/patients/details?id=@appointment.PatientId" class="btn btn-primary text-sm">View Patient</a>
+                @if (appointment.Status == "scheduled")
+                {
+                    <form method="post" asp-page-handler="MarkCompleted" asp-route-id="@appointment.Id" class="inline">
+                        <button type="submit" class="btn btn-secondary text-sm">Mark Completed</button>
+                    </form>
+                    <form method="post" asp-page-handler="MarkMissed" asp-route-id="@appointment.Id" class="inline">
+                        <button type="submit" class="btn bg-red-100 text-red-800 hover:bg-red-200 text-sm">Mark Missed</button>
+                    </form>
+                }
+            </div>
+        </div>
+    }
+</div>
+
+@if (!Model.Appointments.Any())
+{
+    <div class="card text-center py-12">
+        <div class="text-6xl mb-4">📅</div>
+        <h3 class="text-xl font-bold mb-2">No Appointments Found</h3>
+        <p class="text-gray-600 mb-4">Schedule an appointment for a patient</p>
+        <a href="/appointments/create" class="btn btn-primary">Schedule First Appointment</a>
+    </div>
+}
+
+@functions {
+    string GetStatusBorderClass(string status) => status switch
+    {
+        "scheduled" => "border-blue-500",
+        "completed" => "border-green-500",
+        "missed" => "border-red-500",
+        "cancelled" => "border-gray-500",
+        _ => "border-gray-300"
+    };
+
+    string GetStatusBadgeClass(string status) => status switch
+    {
+        "scheduled" => "bg-blue-100 text-blue-800",
+        "completed" => "bg-green-100 text-green-800",
+        "missed" => "bg-red-100 text-red-800",
+        "cancelled" => "bg-gray-100 text-gray-800",
+        _ => "bg-gray-100 text-gray-800"
+    };
+}
